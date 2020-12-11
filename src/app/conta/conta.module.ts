@@ -12,6 +12,7 @@ import { LoginComponent } from './login/login.component';
 import { ContaAppComponent } from './conta.app.component';
 import { ContaService } from './services/conta.service';
 import { ContaRoutingModule } from './conta.route';
+import { ContaGuard } from './services/conta.guard';
 
 
 
@@ -32,7 +33,8 @@ import { ContaRoutingModule } from './conta.route';
     CustomFormsModule
   ],
   providers: [
-    ContaService
+    ContaService,
+    ContaGuard
 
   ]
 })
