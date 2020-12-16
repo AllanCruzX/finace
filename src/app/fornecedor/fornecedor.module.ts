@@ -9,13 +9,15 @@ import { FornecedorService } from './services/fornecedor.service';
 
 import { NgBrazil } from 'ng-brazil';
 import { TextMaskModule } from 'angular2-text-mask';
+import { NgxSpinnerModule } from "ngx-spinner";
 
 
 import { EditarComponent } from './editar/editar.component';
 import { ExcluirComponent } from './excluir/excluir.component';
 import { DetalhesComponent } from './detalhes/detalhes.component';
-import { HttpClientModule } from '@angular/common/http';
 import { FornecedorResolve } from './services/fornecedor.resolve';
+import { FornececedorGuard } from './services/fornecedor.guard';
+import { ListaProdutosComponent } from './produtos/lista-produtos.component';
 
 
 
@@ -26,20 +28,23 @@ import { FornecedorResolve } from './services/fornecedor.resolve';
     ListaComponent,
     EditarComponent,
     ExcluirComponent,
-    DetalhesComponent
+    DetalhesComponent,
+    ListaProdutosComponent
   ],
   imports: [
     CommonModule,
     FornecedorRoutingModule,
     FormsModule,
     ReactiveFormsModule,
-    HttpClientModule,
     NgBrazil,
-    TextMaskModule
+    TextMaskModule,
+    NgxSpinnerModule,
+    
   ],
   providers: [
     FornecedorService,
-    FornecedorResolve
+    FornecedorResolve,
+    FornececedorGuard
   ]
 })
 export class FornecedorModule { }

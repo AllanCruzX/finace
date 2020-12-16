@@ -7,24 +7,44 @@ import { ListaComponent } from './lista/lista.component';
 import { EditarComponent } from './editar/editar.component';
 import { DetalhesComponent } from './detalhes/detalhes.component';
 import { ExcluirComponent } from './excluir/excluir.component';
-import { FornececedorGuard } from './services/fornecedor.guard';
 import { FornecedorResolve } from './services/fornecedor.resolve';
+import { FornececedorGuard } from './services/fornecedor.guard';
 
 const fornecedorRouterConfig: Routes = [
+
+    // data: [{ claim: { nome: 'Fornecedor', valor: 'Adicionar'}}] - claim (pode ser qualquer nome (EX: authorities:{ nome: 'Fornecedor', valor: 'Adicionar'} ))
     {
         path: '', component: FornecedorAppComponent,
         children: [
             { path: 'listar-todos', component: ListaComponent },
-            { path: 'adicionar-novo', component: NovoComponent },
-            { 
+            {
+                path: 'adicionar-novo', component: NovoComponent,
+                canDeactivate: [FornececedorGuard],
+                canActivate: [FornececedorGuard],
+                data: [{ claim: { nome: 'Fornecedor', valor: 'Adicionar'}}]
+            },
+            {
                 path: 'editar/:id', component: EditarComponent,
-                          
+                canActivate: [FornececedorGuard],
+                data: [{ claim: { nome: 'Fornecedor', valor: 'Atualizar' } }],
                 resolve: {
                     fornecedor: FornecedorResolve
                 }
-             },
-            { path: 'detalhes/:id', component: DetalhesComponent },
-            { path: 'excluir/:id', component: ExcluirComponent }
+            },
+            {
+                path: 'detalhes/:id', component: DetalhesComponent,
+                resolve: {
+                    fornecedor: FornecedorResolve
+                }
+            },
+            {
+                path: 'excluir/:id', component: ExcluirComponent,
+                canActivate: [FornececedorGuard],
+                data: [{ claim: { nome: 'Fornecedor', valor: 'Excluir' } }],
+                resolve: {
+                    fornecedor: FornecedorResolve
+                }
+            }
         ]
     }
 ];

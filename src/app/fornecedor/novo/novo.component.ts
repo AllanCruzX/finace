@@ -11,10 +11,8 @@ import { utilsBr } from 'js-brasil';
 import { ValidationMessages, GenericValidator, DisplayMessage } from 'src/app/utils/generic-form-validation';
 import { Fornecedor } from '../models/fornecedor';
 import { FornecedorService } from '../services/fornecedor.service';
-//import { CepConsulta } from '../models/endereco';
 import { StringUtils } from 'src/app/utils/string-utils';
 import { CepConsulta } from '../models/endereco';
-import { Console } from 'console';
 
 @Component({
   selector: 'app-novo',
@@ -183,7 +181,7 @@ export class NovoComponent implements OnInit {
       this.fornecedor.endereco.cep = StringUtils.somenteNumeros(this.fornecedor.endereco.cep);
       this.fornecedor.documento = StringUtils.somenteNumeros(this.fornecedor.documento);
       this.fornecedor.tipoFornecedor = 1;
-      console.log(this.fornecedor);
+     
       this.fornecedorService.novoFornecedor(this.fornecedor)
      
         .subscribe(

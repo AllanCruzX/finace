@@ -17,7 +17,7 @@ export abstract class BaseService {
             })
         };
     }
-
+// TODO: Posso fazer assim ou usando Interceptor
     protected ObterAuthHeaderJson() {
         return {
             headers: new HttpHeaders({
