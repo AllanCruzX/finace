@@ -1,114 +1,187 @@
-import { Component, OnInit, AfterViewInit, ViewChildren, ElementRef } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, FormControl, FormControlName } from '@angular/forms';
+import { Component, OnInit, ViewChildren, ElementRef } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, FormControlName, AbstractControl } from '@angular/forms';
 import { Router } from '@angular/router';
 
-import { Observable, fromEvent, merge } from 'rxjs';
-
-import { CustomValidators } from 'ng2-validation';
 import { ToastrService } from 'ngx-toastr';
+import { NgBrazilValidators } from 'ng-brazil';
+import { utilsBr } from 'js-brasil';
 
-import { Usuario } from '../models/usuario';
-import { ContaService } from '../services/conta.service';
-import { ValidationMessages, GenericValidator, DisplayMessage } from 'src/app/utils/generic-form-validation';
-
+import { StringUtils } from 'src/app/utils/string-utils';
+import { FormBaseComponent } from 'src/app/base-components/form-base.component';
+import { Fornecedor } from 'src/app/fornecedor/models/fornecedor';
+import { FornecedorService } from 'src/app/fornecedor/services/fornecedor.service';
+import { CepConsulta } from 'src/app/fornecedor/models/endereco';
 
 @Component({
-  selector: 'app-cadastro',
-  templateUrl: './cadastro.component.html'
+  selector: 'app-novo',
+  templateUrl: './novo.component.html'
 })
-export class CadastroComponent implements OnInit, AfterViewInit {
+export class NovoComponent extends FormBaseComponent implements OnInit {
 
   @ViewChildren(FormControlName, { read: ElementRef }) formInputElements: ElementRef[];
 
   errors: any[] = [];
-  cadastroForm: FormGroup;
-  usuario: Usuario;
+  fornecedorForm: FormGroup;
+  fornecedor: Fornecedor = new Fornecedor();
 
-  validationMessages: ValidationMessages;
-  genericValidator: GenericValidator;
-  displayMessage: DisplayMessage = {};
+  textoDocumento: string = 'CPF (requerido)';
 
-  mudancasNaoSalvas: boolean;
-
+  MASKS = utilsBr.MASKS;
+  formResult: string = '';
+  
   constructor(private fb: FormBuilder,
-    private contaService: ContaService,
+    private fornecedorService: FornecedorService,
     private router: Router,
-    private toastr: ToastrService
+    private toastr: ToastrService) {
 
-    ) {
+    super();
 
     this.validationMessages = {
-      email: {
-        required: 'Informe o e-mail',
-        email: 'Email inválido'
+      nome: {
+        required: 'Informe o Nome',
       },
-      password: {
-        required: 'Informe a senha',
-        rangeLength: 'A senha deve possuir entre 6 e 15 caracteres'
+      documento: {
+        required: 'Informe o Documento',
+        cpf: 'CPF em formato inválido',
+        cnpj: 'CNPJ em formato inválido'
       },
-      confirmPassword: {
-        required: 'Informe a senha novamente',
-        rangeLength: 'A senha deve possuir entre 6 e 15 caracteres',
-        equalTo: 'As senhas não conferem'
+      logradouro: {
+        required: 'Informe o Logradouro',
+      },
+      numero: {
+        required: 'Informe o Número',
+      },
+      bairro: {
+        required: 'Informe o Bairro',
+      },
+      cep: {
+        required: 'Informe o CEP',
+        cep: 'CEP em formato inválido'
+      },
+      cidade: {
+        required: 'Informe a Cidade',
+      },
+      estado: {
+        required: 'Informe o Estado',
       }
     };
 
-    this.genericValidator = new GenericValidator(this.validationMessages);
+    super.configurarMensagensValidacaoBase(this.validationMessages);
   }
 
-  ngOnInit(): void {
+  ngOnInit() {
 
-    let senha = new FormControl('', [Validators.required, CustomValidators.rangeLength([6, 15])]);
-    let senhaConfirm = new FormControl('', [Validators.required, CustomValidators.rangeLength([6, 15]), CustomValidators.equalTo(senha)]);
+    this.fornecedorForm = this.fb.group({
+      nome: ['', [Validators.required]],
+      documento: ['', [Validators.required, NgBrazilValidators.cpf]],
+      ativo: ['', [Validators.required]],
+      tipoFornecedor: ['', [Validators.required]],
 
-    this.cadastroForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
-      password: senha,
-      confirmPassword: senhaConfirm
+      endereco: this.fb.group({
+        logradouro: ['', [Validators.required]],
+        numero: ['', [Validators.required]],
+        complemento: [''],
+        bairro: ['', [Validators.required]],
+        cep: ['', [Validators.required, NgBrazilValidators.cep]],
+        cidade: ['', [Validators.required]],
+        estado: ['', [Validators.required]]
+      })
     });
+
+    this.fornecedorForm.patchValue({ tipoFornecedor: '1', ativo: true });
   }
 
   ngAfterViewInit(): void {
-    let controlBlurs: Observable<any>[] = this.formInputElements
-      .map((formControl: ElementRef) => fromEvent(formControl.nativeElement, 'blur'));
 
-    merge(...controlBlurs).subscribe(() => {
-      this.displayMessage = this.genericValidator.processarMensagens(this.cadastroForm);
-      this.mudancasNaoSalvas = true;
+    this.tipoFornecedorForm().valueChanges
+      .subscribe(() => {
+        this.trocarValidacaoDocumento();
+        super.configurarValidacaoFormularioBase(this.formInputElements, this.fornecedorForm)
+        super.validarFormulario(this.fornecedorForm);
+      });
+
+      super.configurarValidacaoFormularioBase(this.formInputElements, this.fornecedorForm)
+  }
+    
+  trocarValidacaoDocumento() {
+    if (this.tipoFornecedorForm().value === "1") {
+      this.documento().clearValidators();
+      this.documento().setValidators([Validators.required, NgBrazilValidators.cpf]);
+      this.textoDocumento = "CPF (requerido)";
+    }
+    else {
+      this.documento().clearValidators();
+      this.documento().setValidators([Validators.required, NgBrazilValidators.cnpj]);
+      this.textoDocumento = "CNPJ (requerido)";
+    }
+  }
+
+  tipoFornecedorForm(): AbstractControl {
+    return this.fornecedorForm.get('tipoFornecedor');
+  }
+
+  documento(): AbstractControl {
+    return this.fornecedorForm.get('documento');
+  }
+
+  buscarCep(cep: string) {
+
+    cep = StringUtils.somenteNumeros(cep);
+    if (cep.length < 8) return;
+
+    this.fornecedorService.consultarCep(cep)
+      .subscribe(
+        cepRetorno => this.preencherEnderecoConsulta(cepRetorno),
+        erro => this.errors.push(erro));
+  }
+
+  preencherEnderecoConsulta(cepConsulta: CepConsulta) {
+
+    this.fornecedorForm.patchValue({
+      endereco: {
+        logradouro: cepConsulta.logradouro,
+        bairro: cepConsulta.bairro,
+        cep: cepConsulta.cep,
+        cidade: cepConsulta.localidade,
+        estado: cepConsulta.uf
+      }
     });
   }
 
-  adicionarConta() {
-    if (this.cadastroForm.dirty && this.cadastroForm.valid) {
-      this.usuario = Object.assign({}, this.usuario, this.cadastroForm.value);
+  adicionarFornecedor() {
+    if (this.fornecedorForm.dirty && this.fornecedorForm.valid) {
 
-      this.contaService.registrarUsuario(this.usuario)
-      .subscribe(
-          sucesso => {this.processarSucesso(sucesso)},
-          falha => {this.processarFalha(falha)}
-      );
+      this.fornecedor = Object.assign({}, this.fornecedor, this.fornecedorForm.value);
+      this.formResult = JSON.stringify(this.fornecedor);
 
-      this.mudancasNaoSalvas = false;
+      this.fornecedor.endereco.cep = StringUtils.somenteNumeros(this.fornecedor.endereco.cep);
+      this.fornecedor.documento = StringUtils.somenteNumeros(this.fornecedor.documento);
+      // forçando o tipo fornecedor ser serializado como INT
+      this.fornecedor.tipoFornecedor = parseInt(this.fornecedor.tipoFornecedor.toString());
+
+      this.fornecedorService.novoFornecedor(this.fornecedor)
+        .subscribe(
+          sucesso => { this.processarSucesso(sucesso) },
+          falha => { this.processarFalha(falha) }
+        );
     }
   }
 
   processarSucesso(response: any) {
-    this.cadastroForm.reset();
+    this.fornecedorForm.reset();
     this.errors = [];
 
-   this.contaService.LocalStorage.salvarDadosLocaisUsuario(response);
+    this.mudancasNaoSalvas = false;
 
-   this.router.navigate(['/home']);
-
-    let toast = this.toastr.success('Registro realizado com Sucesso!', 'Bem vindo!!!');
-    if(toast){
+    let toast = this.toastr.success('Fornecedor cadastrado com sucesso!', 'Sucesso!');
+    if (toast) {
       toast.onHidden.subscribe(() => {
-        this.router.navigate(['/home']);
+        this.router.navigate(['/fornecedores/listar-todos']);
       });
     }
   }
 
-  processarFalha(fail: any){
+  processarFalha(fail: any) {
     this.errors = fail.error.errors;
     this.toastr.error('Ocorreu um erro!', 'Opa :(');
   }

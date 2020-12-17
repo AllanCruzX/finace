@@ -1,47 +1,28 @@
 import { Component, OnInit, ViewChildren, ElementRef } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, FormControlName } from '@angular/forms';
+import { FormBuilder, Validators, FormControlName } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 
-import { Observable, fromEvent, merge } from 'rxjs';
-
-import { utilsBr } from 'js-brasil';
 import { ToastrService } from 'ngx-toastr';
 
-import { ValidationMessages, GenericValidator, DisplayMessage } from 'src/app/utils/generic-form-validation';
-
-import { Produto, Fornecedor } from '../models/produto';
 import { ProdutoService } from '../services/produto.service';
 import { environment } from 'src/environments/environment';
+import { CurrencyUtils } from 'src/app/utils/currency-utils';
+import { ProdutoBaseComponent } from '../produto-form.base.component';
 
 @Component({
   selector: 'app-editar',
   templateUrl: './editar.component.html'
 })
-export class EditarComponent implements OnInit {
-
-  @ViewChildren(FormControlName, { read: ElementRef }) formInputElements: ElementRef[];
+export class EditarComponent extends ProdutoBaseComponent implements OnInit {
 
   imagens: string = environment.imagensUrl;
+
+  @ViewChildren(FormControlName, { read: ElementRef }) formInputElements: ElementRef[];
 
   imageBase64: any;
   imagemPreview: any;
   imagemNome: string;
   imagemOriginalSrc: string;
-
-
-  produto: Produto;
-  fornecedores: Fornecedor[];
-  errors: any[] = [];
-  produtoForm: FormGroup;
-
-  validationMessages: ValidationMessages;
-  genericValidator: GenericValidator;
-  displayMessage: DisplayMessage = {};
-
-  MASKS = utilsBr.MASKS;
-  formResult: string = '';
-
-  mudancasNaoSalvas: boolean;
 
   constructor(private fb: FormBuilder,
     private produtoService: ProdutoService,
@@ -49,29 +30,7 @@ export class EditarComponent implements OnInit {
     private route: ActivatedRoute,
     private toastr: ToastrService) {
 
-    this.validationMessages = {
-      fornecedorId: {
-        required: 'Escolha um fornecedor',
-      },
-      nome: {
-        required: 'Informe o Nome',
-        minlength: 'Mínimo de 2 caracteres',
-        maxlength: 'Máximo de 200 caracteres'
-      },
-      descricao: {
-        required: 'Informe a Descrição',
-        minlength: 'Mínimo de 2 caracteres',
-        maxlength: 'Máximo de 1000 caracteres'
-      },
-      imagem: {
-        required: 'Informe a Imagem',
-      },
-      valor: {
-        required: 'Informe o Valor',
-      }
-    };
-
-    this.genericValidator = new GenericValidator(this.validationMessages);
+    super();
     this.produto = this.route.snapshot.data['produto'];
   }
 
@@ -96,27 +55,29 @@ export class EditarComponent implements OnInit {
       nome: this.produto.nome,
       descricao: this.produto.descricao,
       ativo: this.produto.ativo,
-      valor: this.produto.valor
+      valor: CurrencyUtils.DecimalParaString(this.produto.valor)
     });
-     // utilizar o [src] na imagem para evitar que se perca após post
-     this.imagemOriginalSrc = this.imagens + this.produto.imagem;
+
+    // utilizar o [src] na imagem para evitar que se perca após post
+    this.imagemOriginalSrc = this.imagens + this.produto.imagem;
   }
 
   ngAfterViewInit(): void {
-    let controlBlurs: Observable<any>[] = this.formInputElements
-      .map((formControl: ElementRef) => fromEvent(formControl.nativeElement, 'blur'));
-
-    merge(...controlBlurs).subscribe(() => {
-      this.displayMessage = this.genericValidator.processarMensagens(this.produtoForm);
-      this.mudancasNaoSalvas = true;
-    });
+    super.configurarValidacaoFormulario(this.formInputElements);
   }
 
   editarProduto() {
     if (this.produtoForm.dirty && this.produtoForm.valid) {
       this.produto = Object.assign({}, this.produto, this.produtoForm.value);
-     
-     this.produtoService.atualizarProduto(this.produto)
+
+      if (this.imageBase64) {
+        this.produto.imagemUpload = this.imageBase64;
+        this.produto.imagem = this.imagemNome;
+      }
+
+      this.produto.valor = CurrencyUtils.StringParaDecimal(this.produto.valor);
+
+      this.produtoService.atualizarProduto(this.produto)
         .subscribe(
           sucesso => { this.processarSucesso(sucesso) },
           falha => { this.processarFalha(falha) }
@@ -157,4 +118,3 @@ export class EditarComponent implements OnInit {
     this.imagemPreview = "data:image/jpeg;base64," + this.imageBase64;
   }
 }
-
